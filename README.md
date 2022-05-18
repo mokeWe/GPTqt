@@ -1,2 +1,2 @@
 # openAI-pyqt
- OpenAI requester in python
+ Simple OpenAI API requester
