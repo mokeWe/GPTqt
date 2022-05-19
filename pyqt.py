@@ -2,7 +2,8 @@ import sys
 import openai
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
-from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QSlider, QTextEdit, QPushButton, QComboBox, QVBoxLayout, QMessageBox
+from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QSlider, QTextEdit, QPushButton, QComboBox, QVBoxLayout, \
+    QMessageBox
 from pathlib import Path
 import qdarktheme
 
@@ -73,7 +74,7 @@ class MainWin(QWidget):
         layout.addWidget(self.finished)
         self.setLayout(layout)
 
-    def selection_change(self, i):
+    def selection_change(self):
         self.cEngine = self.engine.currentText()
 
     def token_value(self):
@@ -100,7 +101,6 @@ class MainWin(QWidget):
             n=int(self.answerAmount)
         )
         # set text box as response
-        i = 0
         self.responseBox.setText("")
         if int(self.answerAmount) > 0:
             for i in range(int(self.answerAmount)):
