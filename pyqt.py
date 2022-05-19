@@ -1,8 +1,8 @@
 import sys
 import openai
-from PyQt6.QtCore import *
-from PyQt6.QtGui import *
-from PyQt6.QtWidgets import *
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QSlider, QTextEdit, QPushButton, QComboBox, QVBoxLayout, QMessageBox
 from pathlib import Path
 import qdarktheme
 
@@ -13,7 +13,7 @@ class MainWin(QWidget):
         self.tempAmount = float(0.1)
         self.answerAmount = 1
         self.tokenAmount = 10
-        self.cengine = 'davinci'
+        self.cEngine = 'davinci'
         self.tempSlide = QSlider(Qt.Orientation.Horizontal)
         self.tokenSlide = QSlider(Qt.Orientation.Horizontal)
         self.amountSlide = QSlider(Qt.Orientation.Horizontal)
@@ -32,38 +32,32 @@ class MainWin(QWidget):
         _keypath.touch(exist_ok=True)
         with open('api-key.txt', 'r') as h:
             _key = h.readline()
-
         if _key.startswith('sk-'):
             openai.api_key = _key
         else:
-            error_ = QMessageBox.critical(self, "Hey!", 'API Key not found! Set a valid key in api-key.txt!')
+            QMessageBox.critical(self, "Hey!", 'API Key not found, or an invalid API key was provided. Set a '
+                                               'valid key in api-key.txt!')
             sys.exit()
 
         self.engine.addItems(['davinci', 'curie', 'babbage', 'ada'])
-        self.engine.currentIndexChanged.connect(self.selectionchange)
-
+        self.engine.currentIndexChanged.connect(self.selection_change)
         # token slider
         self.tokenSlide.setMinimum(10)
         self.tokenSlide.setMaximum(2000)
         self.tokenSlide.valueChanged.connect(self.token_value)
-
         # amount slider
         self.amountSlide.setMinimum(1)
         self.amountSlide.setMaximum(5)
         self.amountSlide.valueChanged.connect(self.amount_value)
-
         # temperature slider
         self.tempSlide.setMinimum(0)
         self.tempSlide.setMaximum(15)
-        self.tempSlide.valueChanged.connect(self.change_value)
-
+        self.tempSlide.valueChanged.connect(self.change_value_temp)
         # text editor for prompt
         self.responseBox.setReadOnly(True)
-
         # prompt sender
         self.sendButton.setToolTip("Submit the prompt")  # Tool tip
         self.sendButton.clicked.connect(self.send_prompt)
-
         # layout
         layout = QVBoxLayout()
         layout.addWidget(self.engine)
@@ -79,14 +73,14 @@ class MainWin(QWidget):
         layout.addWidget(self.finished)
         self.setLayout(layout)
 
-    def selectionchange(self, i):
-        self.cengine = self.engine.currentText()
+    def selection_change(self, i):
+        self.cEngine = self.engine.currentText()
 
     def token_value(self):
         self.tokenAmount = self.tokenSlide.value()
         self.tokenStatus.setText("Tokens: " + str(self.tokenSlide.value()))
 
-    def change_value(self):
+    def change_value_temp(self):
         self.tempAmount = self.tempSlide.value() / 10
         self.tempStatus.setText("Temperature: " + str(self.tempSlide.value() / 10))
 
@@ -96,11 +90,11 @@ class MainWin(QWidget):
 
     def send_prompt(self):
         response = openai.Completion.create(
-            engine="text-" + self.cengine + "-001",
+            engine="text-" + self.cEngine + "-001",
             prompt=self.promptEdit.toPlainText(),
             temperature=float(self.tempAmount),
             max_tokens=int(self.tokenAmount),
-            top_p=1.0,
+            top_p=0.5,
             frequency_penalty=0.0,
             presence_penalty=0.0,
             n=int(self.answerAmount)
@@ -116,7 +110,7 @@ class MainWin(QWidget):
         # write response text to file
         f = open("Responses.txt", "a+")
         if int(self.answerAmount) > 0:
-            f.write("Prompt: " + self.promptEdit.toPlainText() + " | Engine: " + self.cengine + "\n")
+            f.write("Prompt: " + self.promptEdit.toPlainText() + " | Engine: " + self.cEngine + "\n")
             for i in range(int(self.answerAmount)):
                 f.write("\n[+]----------ANSWER-" + str(i + 1) + "---------\n")
                 f.write(response.choices[i].text + "\n")

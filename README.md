@@ -1,8 +1,9 @@
 # openAI-pyqt
  Simple OpenAI API requester in python and PyQt6.
- 
- If anything doesn't work, open an issue and I'll try to help.
- 
+
+ If anything doesn't work, open an issue, and I'll try to help.
+
+`cx.bat` is for freezing the python script, if you want to freeze the script to make it portable make sure cxFreeze is installed and run `cx.bat`
 ## Installation
 
 Clone this repo
@@ -19,11 +20,8 @@ Install the requirements
   pip install -r Requirements.txt
 ```
 Open 'api-key.txt' and input your API key from [here](https://openai.com/login).
-Your API key should look something like this:
-```bash
-sk-ppp12I2rgurfIhDL8C6ST3BlbkFJH7A23jh43Ikdkl5kML6du
-```
-Start the program via the command line or by double clicking pyqt.py
+
+Then start the program via the command line or by double-clicking `pyqt.py`
 ```bash
   python3 pyqt.py
 ```
