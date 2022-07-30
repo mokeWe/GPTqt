@@ -1,9 +1,12 @@
 # openAI-pyqt
- Simple OpenAI API requester in python and PyQt6.
+ Simple OpenAI API requester in python and PyQt5.
 
  If anything doesn't work, open an issue, and I'll try to help.
 
 `cx.bat` is for freezing the python script, if you want to freeze the script to make it portable make sure cxFreeze is installed and run `cx.bat`
+
+this entire thing also sucks ass
+
 ## Installation
 
 Clone this repo
