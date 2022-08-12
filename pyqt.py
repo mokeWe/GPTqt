@@ -32,15 +32,14 @@ class MainWin(QWidget):
         _keypath = Path('api-key.txt')
         _keypath.touch(exist_ok=True)
         with open('api-key.txt', 'r') as h:
-            _key = h.readline()
-        if _key.startswith('sk-'):
-            openai.api_key = _key
-        else:
+            _key = h.readline().strip("\n")
+        if not _key.startswith('sk-'):
             QMessageBox.critical(self, "Hey!", 'API Key not found, or an invalid API key was provided. Set a '
                                                'valid key in api-key.txt!')
             sys.exit()
+        openai.api_key = _key
 
-        self.engine.addItems(['davinci', 'curie', 'babbage', 'ada'])
+        self.engine.addItems(['text-davinci-002', 'text-curie-001', 'text-babbage-001', 'text-ada-001'])
         self.engine.currentIndexChanged.connect(self.selection_change)
         # token slider
         self.tokenSlide.setMinimum(10)
@@ -57,21 +56,16 @@ class MainWin(QWidget):
         # text editor for prompt
         self.responseBox.setReadOnly(True)
         # prompt sender
-        self.sendButton.setToolTip("Submit the prompt")  # Tool tip
+        self.sendButton.setToolTip("Submit the prompt")
         self.sendButton.clicked.connect(self.send_prompt)
+
         # layout
         layout = QVBoxLayout()
-        layout.addWidget(self.engine)
-        layout.addWidget(self.amountStatus)
-        layout.addWidget(self.amountSlide)
-        layout.addWidget(self.tokenStatus)
-        layout.addWidget(self.tokenSlide)
-        layout.addWidget(self.tempStatus)
-        layout.addWidget(self.tempSlide)
-        layout.addWidget(self.promptEdit)
-        layout.addWidget(self.sendButton)
-        layout.addWidget(self.responseBox)
-        layout.addWidget(self.finished)
+        for widget in (self.engine, self.amountStatus, self.amountSlide,
+                       self.tokenStatus, self.tokenSlide, self.tempStatus,
+                       self.tempSlide, self.promptEdit, self.sendButton,
+                       self.responseBox, self.finished):
+            layout.addWidget(widget)
         self.setLayout(layout)
 
     def selection_change(self):
@@ -91,7 +85,7 @@ class MainWin(QWidget):
 
     def send_prompt(self):
         response = openai.Completion.create(
-            engine="text-" + self.cEngine + "-001",
+            engine=self.cEngine,
             prompt=self.promptEdit.toPlainText(),
             temperature=float(self.tempAmount),
             max_tokens=int(self.tokenAmount),
@@ -104,13 +98,15 @@ class MainWin(QWidget):
         self.responseBox.setText("")
         if int(self.answerAmount) > 0:
             for i in range(int(self.answerAmount)):
-                self.responseBox.append("[+]----------ANSWER-" + str(i + 1) + "---------")
+                self.responseBox.append(
+                    "[+]----------ANSWER-" + str(i + 1) + "---------")
                 self.responseBox.append(response.choices[i].text + "\n\n\n")
 
         # write response text to file
         f = open("Responses.txt", "a+")
         if int(self.answerAmount) > 0:
-            f.write("Prompt: " + self.promptEdit.toPlainText() + " | Engine: " + self.cEngine + "\n")
+            f.write("Prompt: " + self.promptEdit.toPlainText() +
+                    " | Engine: " + self.cEngine + "\n")
             for i in range(int(self.answerAmount)):
                 f.write("\n[+]----------ANSWER-" + str(i + 1) + "---------\n")
                 f.write(response.choices[i].text + "\n")
