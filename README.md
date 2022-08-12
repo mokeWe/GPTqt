@@ -1,5 +1,5 @@
 # openAI-pyqt
- Simple OpenAI API requester in python and PyQt5.
+ Simple OpenAI API requester in python and PyQt6.
 
  If anything doesn't work, open an issue, and I'll try to help.
 
