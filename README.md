@@ -5,7 +5,6 @@
 
 `cx.bat` is for freezing the python script, if you want to freeze the script to make it portable make sure cxFreeze is installed and run `cx.bat`
 
-this entire thing also sucks ass
 
 ## Installation
 
