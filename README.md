@@ -1,5 +1,3 @@
-﻿
-  
 <h1 align="center">OpenAI pyqt</h1>
 
 <p  align="center">
