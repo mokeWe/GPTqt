@@ -39,23 +39,27 @@ class MainWin(QWidget):
             sys.exit()
         openai.api_key = _key
 
-        self.engine.addItems(['text-davinci-002', 'text-curie-001', 'text-babbage-001', 'text-ada-001'])
+        models = openai.Model.list()
+
+        # exclude practically useless models (at least for now)
+        exclude = ['instruct', 'similarity', 'code',
+                   'if', 'query', 'document', 'insert', ':', 'text-search']
+        for model in models.data:
+            if not any(x in model.id for x in exclude):
+                self.engine.addItems([str(model.id)])
+
+        # connections
         self.engine.currentIndexChanged.connect(self.selection_change)
-        # token slider
         self.tokenSlide.setMinimum(10)
         self.tokenSlide.setMaximum(2000)
         self.tokenSlide.valueChanged.connect(self.token_value)
-        # amount slider
         self.amountSlide.setMinimum(1)
         self.amountSlide.setMaximum(5)
         self.amountSlide.valueChanged.connect(self.amount_value)
-        # temperature slider
         self.tempSlide.setMinimum(0)
         self.tempSlide.setMaximum(15)
         self.tempSlide.valueChanged.connect(self.change_value_temp)
-        # text editor for prompt
         self.responseBox.setReadOnly(True)
-        # prompt sender
         self.sendButton.setToolTip("Submit the prompt")
         self.sendButton.clicked.connect(self.send_prompt)
 
@@ -77,7 +81,8 @@ class MainWin(QWidget):
 
     def change_value_temp(self):
         self.tempAmount = self.tempSlide.value() / 10
-        self.tempStatus.setText("Temperature: " + str(self.tempSlide.value() / 10))
+        self.tempStatus.setText(
+            "Temperature: " + str(self.tempSlide.value() / 10))
 
     def amount_value(self):
         self.answerAmount = self.amountSlide.value()
