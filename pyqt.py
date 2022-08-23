@@ -2,8 +2,17 @@ import sys
 import openai
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
-from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QSlider, QTextEdit, QPushButton, QComboBox, QVBoxLayout, \
-    QMessageBox
+from PyQt6.QtWidgets import (
+    QApplication,
+    QWidget,
+    QLabel,
+    QSlider,
+    QTextEdit,
+    QPushButton,
+    QComboBox,
+    QVBoxLayout,
+    QMessageBox,
+)
 from pathlib import Path
 import qdarktheme
 
@@ -14,7 +23,7 @@ class MainWin(QWidget):
         self.tempAmount = float(0.1)
         self.answerAmount = 1
         self.tokenAmount = 10
-        self.cEngine = 'davinci'
+        self.cEngine = "davinci"
         self.tempSlide = QSlider(Qt.Orientation.Horizontal)
         self.tokenSlide = QSlider(Qt.Orientation.Horizontal)
         self.amountSlide = QSlider(Qt.Orientation.Horizontal)
@@ -29,21 +38,23 @@ class MainWin(QWidget):
         self.finished = QLabel()
 
     def init_ui(self):
-        _keypath = Path('api-key.txt')
+        _keypath = Path("api-key.txt")
         _keypath.touch(exist_ok=True)
-        with open('api-key.txt', 'r') as h:
+        with open("api-key.txt", "r") as h:
             _key = h.readline().strip("\n")
-        if not _key.startswith('sk-'):
-            QMessageBox.critical(self, "Hey!", 'API Key not found, or an invalid API key was provided. Set a '
-                                               'valid key in api-key.txt!')
+        if not _key.startswith("sk-"):
+            QMessageBox.critical(
+                self,
+                "Hey!",
+                "API Key not found, or an invalid API key was provided. Set a " "valid key in api-key.txt!",
+            )
             sys.exit()
         openai.api_key = _key
 
         models = openai.Model.list()
 
         # exclude practically useless models (at least for now)
-        exclude = ['instruct', 'similarity', 'code',
-                   'if', 'query', 'document', 'insert', ':', 'text-search']
+        exclude = ["instruct", "similarity", "code", "if", "query", "document", "insert", ":", "text-search"]
         for model in models.data:
             if not any(x in model.id for x in exclude):
                 self.engine.addItems([str(model.id)])
@@ -65,10 +76,19 @@ class MainWin(QWidget):
 
         # layout
         layout = QVBoxLayout()
-        for widget in (self.engine, self.amountStatus, self.amountSlide,
-                       self.tokenStatus, self.tokenSlide, self.tempStatus,
-                       self.tempSlide, self.promptEdit, self.sendButton,
-                       self.responseBox, self.finished):
+        for widget in (
+            self.engine,
+            self.amountStatus,
+            self.amountSlide,
+            self.tokenStatus,
+            self.tokenSlide,
+            self.tempStatus,
+            self.tempSlide,
+            self.promptEdit,
+            self.sendButton,
+            self.responseBox,
+            self.finished,
+        ):
             layout.addWidget(widget)
         self.setLayout(layout)
 
@@ -81,8 +101,7 @@ class MainWin(QWidget):
 
     def change_value_temp(self):
         self.tempAmount = self.tempSlide.value() / 10
-        self.tempStatus.setText(
-            "Temperature: " + str(self.tempSlide.value() / 10))
+        self.tempStatus.setText("Temperature: " + str(self.tempSlide.value() / 10))
 
     def amount_value(self):
         self.answerAmount = self.amountSlide.value()
@@ -97,35 +116,33 @@ class MainWin(QWidget):
             top_p=0.5,
             frequency_penalty=0.0,
             presence_penalty=0.0,
-            n=int(self.answerAmount)
+            n=int(self.answerAmount),
         )
         # set text box as response
         self.responseBox.setText("")
         if int(self.answerAmount) > 0:
             for i in range(int(self.answerAmount)):
-                self.responseBox.append(
-                    "[+]----------ANSWER-" + str(i + 1) + "---------")
+                self.responseBox.append("[+]----------ANSWER-" + str(i + 1) + "---------")
                 self.responseBox.append(response.choices[i].text + "\n\n\n")
 
         # write response text to file
         f = open("Responses.txt", "a+")
         if int(self.answerAmount) > 0:
-            f.write("Prompt: " + self.promptEdit.toPlainText() +
-                    " | Engine: " + self.cEngine + "\n")
+            f.write("Prompt: " + self.promptEdit.toPlainText() + " | Engine: " + self.cEngine + "\n")
             for i in range(int(self.answerAmount)):
                 f.write("\n[+]----------ANSWER-" + str(i + 1) + "---------\n")
                 f.write(response.choices[i].text + "\n")
                 f.write("[+]--------------------------\n\n")
         f.close()
-        self.finished.setText('[+] Done! Also saved to Responses.txt')
+        self.finished.setText("[+] Done! Also saved to Responses.txt")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setStyleSheet(qdarktheme.load_stylesheet())
     ex = MainWin()
     ex.init_ui()
-    ex.setWindowIcon(QIcon('icon.png'))
+    ex.setWindowIcon(QIcon("icon.png"))
     ex.resize(500, 600)
     ex.show()
     sys.exit(app.exec())
