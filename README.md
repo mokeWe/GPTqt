@@ -7,7 +7,7 @@
 
 ## About
 
-A simple program that utilizes OpenAI's API to get responses from their language models, this program is a work in progress and I will try to update it with features every once in a while. If you feel you can improve any of my code feel free to open a PR.
+A program that utilizes OpenAI's API to get responses from their language models, it's a work in progress and I will try to update it with features/fixes every once in a while. If you feel you can improve anything, open a PR.
 
 ## Installation
 
@@ -31,4 +31,4 @@ python3 pyqt.py
 ## Documentation
 
 OpenAI provides a very good guide in prompt engineering and basic function for
-their large language models, it is called the [OpenAI Cookbook](https://github.com/openai/openai-cookbook). There are also multiple examples within the repository that you try out yourself.
+their large language models, it is called the [OpenAI Cookbook](https://github.com/openai/openai-cookbook). There are multiple examples within the repository that you try out yourself.
