@@ -7,28 +7,35 @@
 
 ## About
 
-A program that utilizes OpenAI's API to get responses from their language models, it's a work in progress and I will try to update it with features/fixes every once in a while. If you feel you can improve anything, open a PR.
+A program that utilizes OpenAI's API to get responses from models, it's a work in progress and I will try to update it with features/fixes every once in a while. If you feel you can improve anything, open a PR.
+
+Side note: fined tuned models work best for applied applications, I have made my own fine tuned models however they will not be hosted here.
 
 ## Installation
 
-Python 3.9 or above is recommended but older versions will probably work just fine.
+Python 3.10 is recommended however 3.9 will work as well.
 
-You will need an API key to run this application. You can get one from [here](https://openai.com/login). 
+You will need an OpenAI API key in order to run this application.
 ```bash
 git clone https://github.com/mokeWe/openAI-pyqt
 cd openAI-pyqt
 pip install -r Requirements.txt
 ```
 
-Before you can run the program make sure your API key is in `token.txt`, it should start like this: `sk-...` 
+Before you can run the program make sure your API key is in `token.txt`, it should start with `sk-...` 
 Run the program:
-
 ```bash
 python3 pyqt.py
 ```
   
+## Basics
+
+`Tokens` are the amount of characters to generate. 4 characters of tokenized English text is ~= to one token.
+`Temperature`: how random the model will be in its completions. As the temperature approaches zero the model will become repetetive.
 
 ## Documentation
 
 OpenAI provides a very good guide in prompt engineering and basic function for
 their large language models, it is called the [OpenAI Cookbook](https://github.com/openai/openai-cookbook). There are multiple examples within the repository that you try out yourself.
+
+
