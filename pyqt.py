@@ -20,6 +20,8 @@ import qdarktheme
 class MainWin(QWidget):
     def __init__(self, parent=None):
         super(MainWin, self).__init__(parent)
+
+        # adding widgets
         self.tempAmount = float(0.1)
         self.answerAmount = 1
         self.tokenAmount = 10
@@ -40,6 +42,22 @@ class MainWin(QWidget):
         self.sendButton = QPushButton("Send prompt")
         self.engine = QComboBox()
 
+        # connections
+        self.engine.currentIndexChanged.connect(self.value_change)
+
+        self.tokenSlide.setRange(10, 1000)
+        self.tokenSlide.valueChanged.connect(self.value_change)
+
+        self.amountSlide.setRange(1, 5)
+        self.amountSlide.valueChanged.connect(self.value_change)
+
+        self.tempSlide.setRange(0, 10)
+        self.tempSlide.valueChanged.connect(self.value_change)
+
+        self.responseBox.setReadOnly(True)
+
+        self.sendButton.clicked.connect(self.send_prompt)
+
     def init_ui(self):
         _keypath = Path("api-key.txt")
         _keypath.touch(exist_ok=True)
@@ -54,6 +72,7 @@ class MainWin(QWidget):
                 "valid key in api-key.txt!",
             )
             sys.exit()
+
         openai.api_key = _key
 
         models = openai.Model.list()
@@ -68,39 +87,30 @@ class MainWin(QWidget):
             "insert",
             ":",
             "search",
+            "edit",
         ]
-        for model in models.data:
-            if not any(x in model.id for x in exclude):
-                self.engine.addItems([str(model.id)])
+
+        self.engine.addItems(
+            list(
+                filter(
+                    lambda x: not any(y in x for y in exclude),
+                    map(lambda x: str(x.id), models.data),
+                )
+            )
+        )
 
         self.cEngine = self.engine.currentText()
 
-        # connections
-        self.engine.currentIndexChanged.connect(self.selection_change)
-
-        self.tokenSlide.setRange(10, 1000)
-        self.tokenSlide.valueChanged.connect(self.token_value)
-
-        self.amountSlide.setRange(1, 5)
-        self.amountSlide.valueChanged.connect(self.amount_value)
-
-        self.tempSlide.setRange(0, 10)
-        self.tempSlide.valueChanged.connect(self.change_value_temp)
-
-        self.responseBox.setReadOnly(True)
-
-        self.sendButton.clicked.connect(self.send_prompt)
-
-        # layout
         l = QGridLayout()
-        l.addWidget(self.tempStatus, 0, 0)
-        l.addWidget(self.tempSlide, 0, 1)
-        l.addWidget(self.tokenStatus, 1, 0)
-        l.addWidget(self.tokenSlide, 1, 1)
-        l.addWidget(self.amountStatus, 2, 0)
-        l.addWidget(self.amountSlide, 2, 1)
-        l.addWidget(self.engineStatus, 3, 0)
-        l.addWidget(self.engine, 3, 1)
+        l.aw = lambda w, r, c: l.addWidget(w, r, c)
+        l.aw(self.tempStatus, 0, 0)
+        l.aw(self.tempSlide, 0, 1)
+        l.aw(self.tokenStatus, 1, 0)
+        l.aw(self.tokenSlide, 1, 1)
+        l.aw(self.amountStatus, 2, 0)
+        l.aw(self.amountSlide, 2, 1)
+        l.aw(self.engineStatus, 3, 0)
+        l.aw(self.engine, 3, 1)
         l.addWidget(self.promptEdit, 4, 0, 1, 2)
         l.addWidget(self.sendButton, 5, 0, 1, 2)
         l.addWidget(self.responseBox, 6, 0, 1, 2)
@@ -110,17 +120,13 @@ class MainWin(QWidget):
     def selection_change(self):
         self.cEngine = self.engine.currentText()
 
-    def token_value(self):
+    def value_change(self):
         self.tokenAmount = self.tokenSlide.value()
-        self.tokenStatus.setText("Tokens: " + str(self.tokenAmount))
-
-    def change_value_temp(self):
         self.tempAmount = self.tempSlide.value() / 10
-        self.tempStatus.setText("Temp: " + str(self.tempSlide.value() / 10))
-
-    def amount_value(self):
         self.answerAmount = self.amountSlide.value()
-        self.amountStatus.setText("Answers: " + str(self.amountSlide.value()))
+        self.tokenStatus.setText("Tokens: " + str(self.tokenAmount))
+        self.tempStatus.setText("Temp: " + str(self.tempAmount))
+        self.amountStatus.setText("Answers: " + str(self.answerAmount))
 
     def send_prompt(self):
         response = openai.Completion.create(
@@ -133,30 +139,29 @@ class MainWin(QWidget):
             presence_penalty=0.0,
             n=int(self.answerAmount),
         )
+
         # set text box as response
         self.responseBox.setText("")
+
         for i in range(int(self.answerAmount)):
             self.responseBox.append("[+] ANSWER " + str(i + 1))
             self.responseBox.append(response.choices[i].text + "\n\n\n")
 
         # write response text to file
         f = open("Responses.txt", "a+")
-        f.write(
-            "Prompt: "
-            + self.promptEdit.toPlainText()
-            + " | Engine: "
-            + self.cEngine
-            + "\n"
-        )
+
+        f.write(f"Prompt: {self.promptEdit.toPlainText()} | Engine: {self.cEngine}\n")
+
         for i in range(int(self.answerAmount)):
-            f.write("\n[+]----------ANSWER-" + str(i + 1) + "---------\n")
+            f.write(f"\n[+]----------ANSWER-{i + 1}---------\n")
             f.write(response.choices[i].text + "\n")
             f.write("[+]--------------------------\n\n")
+
         f.close()
         self.finished.setText("[+] Done! Also saved to Responses.txt")
 
 
-if __name__ == "__main__":
+def main():
     app = QApplication(sys.argv)
     app.setStyleSheet(qdarktheme.load_stylesheet())
     ex = MainWin()
@@ -165,3 +170,7 @@ if __name__ == "__main__":
     ex.resize(500, 600)
     ex.show()
     sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    main()
