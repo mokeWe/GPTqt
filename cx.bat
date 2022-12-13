@@ -1,1 +1,0 @@
-cxfreeze -c pyqt.py --target-dir openAI --target-name=gpt-3 --excludes PyQt5 --base-name=WIN32GUI
