@@ -1,4 +1,4 @@
-<h1 align="center">OpenAI pyqt</h1>
+<h1 align="center">GPTQT</h1>
 
 <p  align="center">
 <img src="https://img.shields.io/badge/status-good-green?style=for-the-badge&logo=openai"/>
@@ -7,22 +7,23 @@
 
 ## About
 
-A program that utilizes OpenAI's API to get responses from models, it's a work in progress and I will try to update it with features/fixes every once in a while. If you feel you can improve anything, open a PR.
+A program that utilizes OpenAI's API to get completions/chat responses from their models, it's a work in progress and I will try to update it with features/fixes every once in a while. If you feel you can improve anything, open a PR.
 
-Side note: fined tuned models work best for applied applications, I have made my own fine tuned models however they will not be hosted here.
+Fined tuned models work best for applied applications.
 
 ## Installation
 
-Python 3.10 is recommended however 3.9 will work as well.
+Python 3.10 is recommended, older versions will probably work just fine.
 
-You will need an OpenAI API key in order to run this application.
+**You will need an OpenAI API key.**
+
 ```bash
 git clone https://github.com/mokeWe/openAI-pyqt
 cd openAI-pyqt
 pip install -r Requirements.txt
 ```
 
-Before you can run the program make sure your API key is in `token.txt`, it should start with `sk-...` 
+Before you can run the program make sure your API key is in `api-key.txt`, it should start with `sk-...` 
 Run the program:
 ```bash
 python3 pyqt.py
