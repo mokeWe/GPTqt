@@ -18,7 +18,6 @@ from PyQt6.QtWidgets import (
 )
 from pathlib import Path
 import qdarktheme
-from time import sleep
 
 
 messages = []
@@ -263,8 +262,6 @@ class Tab2(QWidget):
         prompt = self.promptEdit.text()
         self.promptEdit.setText("")
         self.responseBox.append(f"\nUser: {prompt}\n")
-
-        time.sleep(0.5)
 
         print(f"User: {prompt}")
 
