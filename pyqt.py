@@ -18,9 +18,7 @@ from PyQt6.QtWidgets import (
 )
 from pathlib import Path
 import qdarktheme
-
-
-messages = []
+from datetime import datetime
 
 
 class App(QWidget):
@@ -224,6 +222,9 @@ class Tab1(QWidget):
         self.finished.setText("[+] Done! Also saved to Responses.txt")
 
 
+messages = []
+
+
 # Chat tab
 class Tab2(QWidget):
     def __init__(self, parent=None):
@@ -233,9 +234,7 @@ class Tab2(QWidget):
         self.responseLabel = QLabel("Response:")
         self.responseBox = QTextEdit()
         self.responseBox.setReadOnly(True)
-
         self.promptEdit = QLineEdit()
-        self.promptEdit.setFixedHeight(100)
 
     def init_ui(self):
         """Initialize the UI for tab2"""
@@ -244,11 +243,6 @@ class Tab2(QWidget):
         l.addWidget(self.responseBox, 1, 0)
         l.addWidget(self.promptEdit, 2, 0)
         self.setLayout(l)
-
-        # read responses from file
-        # f = open("chat_log.txt", "r")
-        # self.responseBox.setText(f.read())
-        # f.close()
 
         # set ghost text for prompt
         self.promptEdit.setPlaceholderText("Enter your prompt here...")
@@ -263,7 +257,7 @@ class Tab2(QWidget):
         self.promptEdit.setText("")
         self.responseBox.append(f"\nUser: {prompt}\n")
 
-        print(f"User: {prompt}")
+        # print(f"User: {prompt}")
 
         messages.append({"role": "user", "content": f"{prompt}"})
 
@@ -278,9 +272,9 @@ class Tab2(QWidget):
             {"role": "assistant", "content": f"{response.choices[0].message.content}"}
         )
 
-        print(messages)
+        # print(messages)
 
-        print(f"Bot: {response.choices[0].message.content}")
+        # print(f"Bot: {response.choices[0].message.content}")
 
         self.responseBox.append(f"Bot: {response.choices[0].message.content}")
 
@@ -289,6 +283,16 @@ class Tab2(QWidget):
 class Tab3(QWidget):
     def __init__(self, parent=None):
         super(Tab3, self).__init__(parent)
+
+        # setting default variables for each slider/combobox
+        global chat_engine
+        chat_engine = "gpt-3.5-turbo-0301"
+
+        global tempAmount
+        tempAmount = 0.1
+
+        global tokenAmount
+        tokenAmount = 10
 
         # adding widgets
         self.tempAmount = float(0.1)
@@ -307,6 +311,8 @@ class Tab3(QWidget):
         self.tempSlide.setRange(0, 10)
         self.tempSlide.valueChanged.connect(self.selection_change)
 
+        self.exportButton = QPushButton("Export Chat")
+        self.exportButton.clicked.connect(self.export_chat)
         self.engineBox = QComboBox()
 
         # Kinda broken, allows user to select completion models.
@@ -320,6 +326,7 @@ class Tab3(QWidget):
             )
         )
 
+        self.engineBox.setCurrentText("gpt-3.5-turbo-0301")
         self.engineBox.currentIndexChanged.connect(self.selection_change)
 
     def selection_change(self):
@@ -337,6 +344,17 @@ class Tab3(QWidget):
         global chat_engine
         chat_engine = self.engineBox.currentText()
 
+    def export_chat(self):
+        """Export the chat to a text file"""
+        try:
+            f = open(datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + ".txt", "w+")
+            # parse json from messages array
+            for i in range(len(messages)):
+                f.write(f"{messages[i]['role']}: {messages[i]['content']}\n")
+            f.close()
+        except Exception as e:
+            print(f"Error: {e}")
+
     def init_ui(self):
         """Initialize the UI for tab3"""
         layout = QGridLayout()
@@ -347,6 +365,7 @@ class Tab3(QWidget):
         law(self.tempSlide, 2, 0)
         law(self.tokenStatus, 3, 0)
         law(self.tokenSlide, 4, 0)
+        law(self.exportButton, 5, 0)
 
         self.setLayout(layout)
 
