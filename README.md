@@ -39,11 +39,15 @@ python3 pyqt.py
 OpenAI provides a very good guide in prompt engineering and basic function for
 their large language models, it is called the [OpenAI Cookbook](https://github.com/openai/openai-cookbook). There are multiple examples within the repository that you try out yourself.
 
-## Gallery
+## Screenshots
+<details>
+<summary>Expand me</summary>
 
 ![Screenshot](screenshots/requests.png)
 ![Screenshot](screenshots/chat.png)
 ![Screenshot](screenshots/chat_settings.png)
+
+</details>
 
 ## License
 
