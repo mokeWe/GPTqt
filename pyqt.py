@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import (
 from pathlib import Path
 import qdarktheme
 from datetime import datetime
+import time
 
 
 class App(QWidget):
@@ -250,6 +251,7 @@ class Tab2(QWidget):
 
     def generate_response(self):
         """Generate a response from the prompt"""
+        start_time = time.time()
         global msg_content
         global messages
 
@@ -261,22 +263,32 @@ class Tab2(QWidget):
 
         messages.append({"role": "user", "content": f"{prompt}"})
 
+        self.responseBox.append(f"Bot: ")
+
         response = openai.ChatCompletion.create(
             model=chat_engine,
             temperature=tempAmount,
             max_tokens=tokenAmount,
             messages=messages,
+            stream=True,
         )
 
-        messages.append(
-            {"role": "assistant", "content": f"{response.choices[0].message.content}"}
-        )
+        collected_chunks = []
+        collected_messages = []
 
-        # print(messages)
+        for chunk in response:
+            chunk_time = time.time() - start_time
+            collected_chunks.append(chunk)
+            chunk_message = chunk["choices"][0]["delta"]  # extract delta of message
+            collected_messages.append(chunk_message)
+            print(f"recieved {chunk_time:.2f} seconds after request")
 
-        # print(f"Bot: {response.choices[0].message.content}")
+        print(f"full response recieved {chunk_time:.2f} seconds after request")
+        full_reply = "".join([m.get("content", "") for m in collected_messages])
+        # print(f"full reply: {full_reply}")
 
-        self.responseBox.append(f"Bot: {response.choices[0].message.content}")
+        self.responseBox.append(f"{full_reply}\n")
+        messages.append({"role": "assistant", "content": f"{full_reply}"})
 
 
 # Chat Settings Tab
