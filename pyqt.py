@@ -1,6 +1,6 @@
 import sys
 import openai
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import (
     QApplication,
@@ -18,8 +18,23 @@ from PyQt6.QtWidgets import (
 )
 from pathlib import Path
 import qdarktheme
-from datetime import datetime
 import time
+
+
+class Worker(QThread):
+    def __init__(self, func, *args, **kwargs):
+        super().__init__()
+        self.func = func
+        self.args = args
+        self.kwargs = kwargs
+
+    def run(self):
+        try:
+            self.func(*self.args, **self.kwargs)
+            self.deleteLater()
+        except Exception as e:
+            print(e)
+            self.deleteLater()
 
 
 class App(QWidget):
@@ -58,8 +73,62 @@ class App(QWidget):
 
         self.show()
 
+    # function to load API key from file
+    def load_api_key():
+        global _key
 
-# Response tab
+        _keypath = Path("api-key.txt")
+        _keypath.touch(exist_ok=True)
+
+        print("     Loading API key...")
+
+        with open("api-key.txt", "r") as h:
+            _key = h.readline().strip("\n")
+        if not _key:
+            print(
+                "No API key found, or an invalid one was detected. Set a valid key in api-key.txt"
+            )
+            sys.exit()
+        else:
+            print("     API key loaded successfully!")
+
+        openai.api_key = _key
+
+    def load_models():
+        global model_list
+
+        models = openai.Model.list()
+
+        # exclude useless models
+        exclude = [
+            "instruct",
+            "similarity",
+            "if",
+            "query",
+            "document",
+            "insert",
+            "search",
+            "edit",
+        ]
+
+        print("     loading engines...")
+
+        model_list = []
+
+        for model in models.data:
+            if not any(y in str(model.id) for y in exclude):
+                model_list.append(str(model.id))
+
+        print("     engines loaded successfully")
+
+    # loading API key and models in the background
+    time_start = time.time()
+    Worker(load_api_key).run()
+    Worker(load_models).run()
+    time_end = time.time() - time_start
+    print(f"Loaded in {time_end} seconds")
+
+
 class Tab1(QWidget):
     def __init__(self, parent=None):
         """Initialize tab1"""
@@ -85,6 +154,7 @@ class Tab1(QWidget):
 
         self.sendButton = QPushButton("Send prompt")
         self.engine = QComboBox()
+        self.engine.addItems(model_list)
 
         # connections
         self.engine.currentIndexChanged.connect(self.value_change)
@@ -100,60 +170,10 @@ class Tab1(QWidget):
 
         self.responseBox.setReadOnly(True)
 
-        self.sendButton.clicked.connect(self.send_prompt)
+        self.sendButton.clicked.connect(self.send_prompt_thread)
 
     def init_ui(self):
-        """Initialize the UI for tab1"""
-        global _key
-        global models
-        global exclude
-
-        _keypath = Path("api-key.txt")
-        _keypath.touch(exist_ok=True)
-
-        print("Loading API key...")
-
-        with open("api-key.txt", "r") as h:
-            _key = h.readline().strip("\n")
-        if not _key.startswith("sk-"):
-            QMessageBox.critical(
-                self,
-                "Error",
-                "API Key not found, or an invalid API key was provided. Set a "
-                "valid key in api-key.txt!",
-            )
-            sys.exit()
-
-        openai.api_key = _key
-
-        models = openai.Model.list()
-
-        # exclude useless models
-        exclude = [
-            "instruct",
-            "similarity",
-            "if",
-            "query",
-            "document",
-            "insert",
-            ":",
-            "search",
-            "edit",
-        ]
-
-        # Add items to the combobox
-        print("Loading engines...")
-        self.engine.addItems(
-            # Filter out items that are not needed
-            list(
-                filter(
-                    # Filter out items that should be excluded
-                    lambda x: not any(y in x for y in exclude),
-                    # Get the item's id
-                    map(lambda x: str(x.id), models.data),
-                )
-            )
-        )
+        """Initialize the UI"""
 
         self.cEngine = self.engine.currentText()
 
@@ -174,7 +194,7 @@ class Tab1(QWidget):
         self.setLayout(l)
 
     def selection_change(self):
-        """Update the engine when the combobox is changed"""
+        """Update the UI when the selection changes"""
         self.cEngine = self.engine.currentText()
 
     def value_change(self):
@@ -185,6 +205,14 @@ class Tab1(QWidget):
         self.tokenStatus.setText("Tokens: " + str(self.tokenAmount))
         self.tempStatus.setText("Temp: " + str(self.tempAmount))
         self.amountStatus.setText("Answers: " + str(self.answerAmount))
+
+    def send_prompt_thread(self):
+        """Send prompt in a thread"""
+        self.sendButton.setEnabled(False)
+        self.finished.setText("Sending prompt...")
+        self.finished.repaint()
+        Worker(self.send_prompt).run()
+        self.sendButton.setEnabled(True)
 
     def send_prompt(self):
         """Send the prompt to OpenAI"""
@@ -222,6 +250,8 @@ class Tab1(QWidget):
         f.close()
         self.finished.setText("[+] Done! Also saved to Responses.txt")
 
+        print("Done!")
+
 
 messages = []
 
@@ -247,7 +277,20 @@ class Tab2(QWidget):
 
         # set ghost text for prompt
         self.promptEdit.setPlaceholderText("Enter your prompt here...")
-        self.promptEdit.returnPressed.connect(self.generate_response)
+        self.promptEdit.returnPressed.connect(self.generate_response_thread)
+
+    def generate_response_thread(self):
+        """Generate a response from the prompt in a thread"""
+        Worker(
+            self.generate_response
+        ).run()  # still freezes the UI, cant be fucked to fix it.
+
+        # my life has been falling apart around me, My medications arent working, I can barely function.
+        # I have nobody to talk to, fucking hell I'm venting in the comments of my horribly writtin program.
+        # Suicide is usually the first thing I think of when I wake up
+        # and one of the last things I think of when I go to sleep.
+        # I dont find enjoyment in anything anymore.
+        # I've never been skilled, I don't have friends.
 
     def generate_response(self):
         """Generate a response from the prompt"""
@@ -259,11 +302,7 @@ class Tab2(QWidget):
         self.promptEdit.setText("")
         self.responseBox.append(f"\nUser: {prompt}\n")
 
-        # print(f"User: {prompt}")
-
         messages.append({"role": "user", "content": f"{prompt}"})
-
-        self.responseBox.append(f"Bot: ")
 
         response = openai.ChatCompletion.create(
             model=chat_engine,
@@ -287,7 +326,7 @@ class Tab2(QWidget):
         full_reply = "".join([m.get("content", "") for m in collected_messages])
         # print(f"full reply: {full_reply}")
 
-        self.responseBox.append(f"{full_reply}\n")
+        self.responseBox.append(f"Bot: {full_reply}\n")
         messages.append({"role": "assistant", "content": f"{full_reply}"})
 
 
@@ -327,16 +366,7 @@ class Tab3(QWidget):
         self.exportButton.clicked.connect(self.export_chat)
         self.engineBox = QComboBox()
 
-        # Kinda broken, allows user to select completion models.
-        self.engineBox.addItems(
-            # Filter out items that are not needed
-            list(
-                filter(
-                    lambda x: not any(y in x for y in exclude),
-                    map(lambda x: str(x.id), models.data),
-                )
-            )
-        )
+        self.engineBox.addItems(model_list)
 
         self.engineBox.setCurrentText("gpt-3.5-turbo-0301")
         self.engineBox.currentIndexChanged.connect(self.selection_change)
@@ -359,7 +389,7 @@ class Tab3(QWidget):
     def export_chat(self):
         """Export the chat to a text file"""
         try:
-            f = open(datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + ".txt", "w+")
+            f = open(time.strftime("%Y-%m-%d-%H-%M-%S") + ".txt", "w+")
             # parse json from messages array
             for i in range(len(messages)):
                 f.write(f"{messages[i]['role']}: {messages[i]['content']}\n")
@@ -383,7 +413,6 @@ class Tab3(QWidget):
 
 
 def main():
-    """Main function"""
     app = QApplication(sys.argv)
     ex = App()
     sys.exit(app.exec())
