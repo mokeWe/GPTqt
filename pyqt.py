@@ -1,6 +1,6 @@
 import sys
 import openai
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtCore import Qt, QThread, pyqtSignal, QObject
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import (
     QApplication,
@@ -11,7 +11,6 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QComboBox,
     QGridLayout,
-    QMessageBox,
     QTabWidget,
     QLineEdit,
     QVBoxLayout,
@@ -21,22 +20,6 @@ import qdarktheme
 import time
 
 
-class Worker(QThread):
-    def __init__(self, func, *args, **kwargs):
-        super().__init__()
-        self.func = func
-        self.args = args
-        self.kwargs = kwargs
-
-    def run(self):
-        try:
-            self.func(*self.args, **self.kwargs)
-            self.deleteLater()
-        except Exception as e:
-            print(e)
-            self.deleteLater()
-
-
 class App(QWidget):
     def __init__(self):
         super().__init__()
@@ -44,7 +27,6 @@ class App(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        """Initialize the UI"""
         self.setWindowTitle(self.title)
         self.setWindowIcon(QIcon("icon.png"))
         self.setGeometry(100, 100, 600, 600)
@@ -109,29 +91,32 @@ class App(QWidget):
             "insert",
             "search",
             "edit",
+            "dall-e",
+            "tts"
         ]
 
         print("     loading engines...")
 
         model_list = []
 
-        for model in models.data:
-            if not any(y in str(model.id) for y in exclude):
-                model_list.append(str(model.id))
+        model_list = [
+            str(model.id)
+            for model in models.data
+            if not any(y in str(model.id) for y in exclude)
+        ]
 
         print("     engines loaded successfully")
 
     # loading API key and models in the background
     time_start = time.time()
-    Worker(load_api_key).run()
-    Worker(load_models).run()
+    load_api_key()
+    load_models()
     time_end = time.time() - time_start
     print(f"Loaded in {time_end} seconds")
 
 
 class Tab1(QWidget):
     def __init__(self, parent=None):
-        """Initialize tab1"""
         super(Tab1, self).__init__(parent)
 
         # adding widgets
@@ -173,8 +158,6 @@ class Tab1(QWidget):
         self.sendButton.clicked.connect(self.send_prompt_thread)
 
     def init_ui(self):
-        """Initialize the UI"""
-
         self.cEngine = self.engine.currentText()
 
         l = QGridLayout()
@@ -194,11 +177,9 @@ class Tab1(QWidget):
         self.setLayout(l)
 
     def selection_change(self):
-        """Update the UI when the selection changes"""
         self.cEngine = self.engine.currentText()
 
     def value_change(self):
-        """Update the values when the sliders are changed"""
         self.tokenAmount = self.tokenSlide.value()
         self.tempAmount = self.tempSlide.value() / 10
         self.answerAmount = self.amountSlide.value()
@@ -207,16 +188,13 @@ class Tab1(QWidget):
         self.amountStatus.setText("Answers: " + str(self.answerAmount))
 
     def send_prompt_thread(self):
-        """Send prompt in a thread"""
         self.sendButton.setEnabled(False)
         self.finished.setText("Sending prompt...")
         self.finished.repaint()
-        Worker(self.send_prompt).run()
+        self.send_prompt()
         self.sendButton.setEnabled(True)
 
     def send_prompt(self):
-        """Send the prompt to OpenAI"""
-
         print("Sending prompt...")
 
         response = openai.Completion.create(
@@ -268,7 +246,6 @@ class Tab2(QWidget):
         self.promptEdit = QLineEdit()
 
     def init_ui(self):
-        """Initialize the UI for tab2"""
         l = QGridLayout()
         l.addWidget(self.responseLabel, 0, 0)
         l.addWidget(self.responseBox, 1, 0)
@@ -277,32 +254,42 @@ class Tab2(QWidget):
 
         # set ghost text for prompt
         self.promptEdit.setPlaceholderText("Enter your prompt here...")
-        self.promptEdit.returnPressed.connect(self.generate_response_thread)
-
-    def generate_response_thread(self):
-        """Generate a response from the prompt in a thread"""
-        Worker(
-            self.generate_response
-        ).run()  # still freezes the UI, cant be fucked to fix it.
-
-        # my life has been falling apart around me, My medications arent working, I can barely function.
-        # I have nobody to talk to, fucking hell I'm venting in the comments of my horribly writtin program.
-        # Suicide is usually the first thing I think of when I wake up
-        # and one of the last things I think of when I go to sleep.
-        # I dont find enjoyment in anything anymore.
-        # I've never been skilled, I don't have friends.
+        self.promptEdit.returnPressed.connect(self.generate_response)
 
     def generate_response(self):
-        """Generate a response from the prompt"""
-        start_time = time.time()
-        global msg_content
+        # set up threading to stop the UI from freezing
+
         global messages
 
         prompt = self.promptEdit.text()
         self.promptEdit.setText("")
-        self.responseBox.append(f"\nUser: {prompt}\n")
+        self.responseBox.append(f"\nUser: {prompt}\n\nBot: ")
 
         messages.append({"role": "user", "content": f"{prompt}"})
+
+        self.thread = QThread()
+        self.worker = Worker(responseBox=self.responseBox)
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(self.worker.run)
+        self.thread.start()
+        self.worker.progress.connect(self.update_text_box)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+
+    def update_text_box(self, text_chunk):
+        self.responseBox.insertPlainText(text_chunk)
+
+
+class Worker(QObject):
+    finished = pyqtSignal()
+    progress = pyqtSignal(str)
+
+    def __init__(self, responseBox):
+        super().__init__()
+        self.responseBox = responseBox
+
+    def generate_response(self):
+        global messages
 
         response = openai.ChatCompletion.create(
             model=chat_engine,
@@ -316,18 +303,18 @@ class Tab2(QWidget):
         collected_messages = []
 
         for chunk in response:
-            chunk_time = time.time() - start_time
             collected_chunks.append(chunk)
-            chunk_message = chunk["choices"][0]["delta"]  # extract delta of message
+            chunk_message = chunk["choices"][0]["delta"]
             collected_messages.append(chunk_message)
-            print(f"recieved {chunk_time:.2f} seconds after request")
+            self.progress.emit("".join(chunk_message.get("content", "")))
 
-        print(f"full response recieved {chunk_time:.2f} seconds after request")
         full_reply = "".join([m.get("content", "") for m in collected_messages])
-        # print(f"full reply: {full_reply}")
 
-        self.responseBox.append(f"Bot: {full_reply}\n")
         messages.append({"role": "assistant", "content": f"{full_reply}"})
+
+    def run(self):
+        self.generate_response()
+        self.finished.emit()
 
 
 # Chat Settings Tab
@@ -335,9 +322,9 @@ class Tab3(QWidget):
     def __init__(self, parent=None):
         super(Tab3, self).__init__(parent)
 
-        # setting default variables for each slider/combobox
+        # setting default variables
         global chat_engine
-        chat_engine = "gpt-3.5-turbo-0301"
+        chat_engine = "gpt-4"
 
         global tempAmount
         tempAmount = 0.1
@@ -368,11 +355,10 @@ class Tab3(QWidget):
 
         self.engineBox.addItems(model_list)
 
-        self.engineBox.setCurrentText("gpt-3.5-turbo-0301")
+        self.engineBox.setCurrentText(chat_engine)
         self.engineBox.currentIndexChanged.connect(self.selection_change)
 
     def selection_change(self):
-        """Update the values when the sliders are changed"""
         global tokenAmount
         self.tokenAmount = self.tokenSlide.value()
         tokenAmount = self.tokenAmount
@@ -387,7 +373,6 @@ class Tab3(QWidget):
         chat_engine = self.engineBox.currentText()
 
     def export_chat(self):
-        """Export the chat to a text file"""
         try:
             f = open(time.strftime("%Y-%m-%d-%H-%M-%S") + ".txt", "w+")
             # parse json from messages array
