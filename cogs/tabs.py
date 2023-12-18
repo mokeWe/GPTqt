@@ -1,4 +1,4 @@
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtCore import Qt, QThread
 from PyQt6.QtWidgets import (
     QWidget,
     QLabel,
@@ -8,7 +8,6 @@ from PyQt6.QtWidgets import (
     QComboBox,
     QGridLayout,
     QLineEdit,
-    QVBoxLayout,
 )
 import openai
 from cogs.worker import Worker

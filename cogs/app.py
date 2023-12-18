@@ -6,7 +6,6 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 import qdarktheme
-import time
 from cogs.tabs import Tab1, Tab2, Tab3
 from cogs.apis import *
 
