@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
 import openai
 from cogs.worker import Worker
 from cogs.apis import load_models, load_api_key
-import time
+from datetime import datetime
 
 load_api_key()
 
@@ -116,23 +116,24 @@ class Tab1(QWidget):
         # Set the text box as response
         self.responseBox.setText("")
 
-        for i in range(int(self.answerAmount)):
-            self.responseBox.append("[+] ANSWER " + str(i + 1))
-            self.responseBox.append(response.choices[i].text + "\n\n\n")
+        # Prepare answers
+        answers = [
+            ("[+] ANSWER " + str(i + 1), response.choices[i].text)
+            for i in range(int(self.answerAmount))
+        ]
 
-        # Write response text to file
-        f = open("Responses.txt", "a+")
+        # Update response box and write the response text to a file
+        with open("Responses.txt", "a+") as f:
+            f.write(
+                f"Prompt: {self.promptEdit.toPlainText()} | Engine: {self.cEngine}\n"
+            )
+            for i, (label, text) in enumerate(answers, start=1):
+                self.responseBox.append(f"{label}\n{text}\n\n\n")
+                f.write(
+                    f"\n[+]----------ANSWER-{i}---------\n{text}\n[+]--------------------------\n\n"
+                )
 
-        f.write(f"Prompt: {self.promptEdit.toPlainText()} | Engine: {self.cEngine}\n")
-
-        for i in range(int(self.answerAmount)):
-            f.write(f"\n[+]----------ANSWER-{i + 1}---------\n")
-            f.write(response.choices[i].text + "\n")
-            f.write("[+]--------------------------\n\n")
-
-        f.close()
         self.finished.setText("[+] Done! Also saved to Responses.txt")
-
         print("Done!")
 
 
@@ -180,6 +181,7 @@ class Tab2(QWidget):
             tokenAmount=tokenAmount,
             messages=messages,
         )
+
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
         self.thread.start()
@@ -247,13 +249,12 @@ class Tab3(QWidget):
         global chat_engine
         chat_engine = self.engineBox.currentText()
 
-    def export_chat(self):
+    def export_chat(self, messages):
+        filename = datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + ".txt"
         try:
-            f = open(time.strftime("%Y-%m-%d-%H-%M-%S") + ".txt", "w+")
-            # parse json from messages array
-            for i in range(len(messages)):
-                f.write(f"{messages[i]['role']}: {messages[i]['content']}\n")
-            f.close()
+            with open(filename, "w") as f:
+                lines = (f"{msg['role']}: {msg['content']}" for msg in messages)
+                f.write("\n".join(lines))
         except Exception as e:
             print(f"Error: {e}")
 

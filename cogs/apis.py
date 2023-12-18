@@ -5,64 +5,61 @@ import time
 
 
 # function to load API key from file
+API_KEY_PATH = "api-key.txt"
+
+
 def load_api_key():
-    global _key
+    key_path = Path(API_KEY_PATH)
 
-    _keypath = Path("api-key.txt")
-    _keypath.touch(exist_ok=True)
+    print("Loading API Key...")
 
-    print("     Loading API key...")
+    if not key_path.is_file():
+        print(f"No API key file found at {API_KEY_PATH}. Please add it.")
+        sys.exit()
 
-    with open("api-key.txt", "r") as h:
-        _key = h.readline().strip("\n")
-    if not _key:
+    with key_path.open() as key_file:
+        api_key = key_file.readline().strip()
+
+    if not api_key:
         print(
-            "No API key found, or an invalid one was detected. Set a valid key in api-key.txt"
+            f"No API key found, or an invalid one was detected in {API_KEY_PATH}. Set a valid key."
         )
         sys.exit()
-    else:
-        print("     API key loaded successfully!")
 
-    openai.api_key = _key
+    openai.api_key = api_key
 
-    # loading API key and models in the background
-    time_start = time.time()
-    time_end = time.time() - time_start
-    print(f"Loaded in {time_end} seconds")
+    print("API key loaded successfully!")
 
-    return _key
+    return api_key
 
 
 def load_models():
     models = openai.Model.list()
 
-    # exclude useless models
-    exclude = [
-        "instruct",
-        "similarity",
-        "if",
-        "query",
-        "document",
-        "insert",
-        "search",
-        "edit",
-        "dall-e",
-        "tts",
-    ]
+    # exclude these models
+    exclude = set(
+        [
+            "instruct",
+            "similarity",
+            "if",
+            "query",
+            "document",
+            "insert",
+            "search",
+            "edit",
+            "dall-e",
+            "tts",
+        ]
+    )
 
-    print("     loading engines...")
+    print("Loading engines...")
 
+    start_time = time.time()
     model_list = [
-        str(model.id)
-        for model in models.data
-        if not any(y in str(model.id) for y in exclude)
+        str(model.id) for model in models.data if str(model.id) not in exclude
     ]
+    end_time = time.time() - start_time
 
-    print("     engines loaded successfully")
-
-    # loading API key and models in the background
-    time_start = time.time()
-    time_end = time.time() - time_start
-    print(f"Loaded in {time_end} seconds")
+    print(f"Engines loaded successfully in {end_time} seconds")
 
     return model_list
