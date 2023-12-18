@@ -1,9 +1,5 @@
-import sys
-import openai
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QObject
-from PyQt6.QtGui import QIcon
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtWidgets import (
-    QApplication,
     QWidget,
     QLabel,
     QSlider,
@@ -11,108 +7,15 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QComboBox,
     QGridLayout,
-    QTabWidget,
     QLineEdit,
     QVBoxLayout,
 )
-from pathlib import Path
-import qdarktheme
+import openai
+from cogs.worker import Worker
+from cogs.apis import load_models, load_api_key
 import time
 
-
-class App(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.title = "GPTQT"
-        self.init_ui()
-
-    def init_ui(self):
-        self.setWindowTitle(self.title)
-        self.setWindowIcon(QIcon("icon.png"))
-        self.setGeometry(100, 100, 600, 600)
-
-        # make tabbed window
-        self.tabs = QTabWidget()
-
-        self.tab1 = Tab1()
-        self.tab1.init_ui()
-        self.tabs.addTab(self.tab1, "Requests")
-
-        self.tab2 = Tab2()
-        self.tab2.init_ui()
-        self.tabs.addTab(self.tab2, "Chat")
-
-        self.tab3 = Tab3()
-        self.tab3.init_ui()
-        self.tabs.addTab(self.tab3, "Chat Settings")
-
-        # set layout
-        l = QVBoxLayout()
-        l.addWidget(self.tabs)
-        self.setLayout(l)
-
-        self.setStyleSheet(qdarktheme.load_stylesheet())
-
-        self.show()
-
-    # function to load API key from file
-    def load_api_key():
-        global _key
-
-        _keypath = Path("api-key.txt")
-        _keypath.touch(exist_ok=True)
-
-        print("     Loading API key...")
-
-        with open("api-key.txt", "r") as h:
-            _key = h.readline().strip("\n")
-        if not _key:
-            print(
-                "No API key found, or an invalid one was detected. Set a valid key in api-key.txt"
-            )
-            sys.exit()
-        else:
-            print("     API key loaded successfully!")
-
-        openai.api_key = _key
-
-    def load_models():
-        global model_list
-
-        models = openai.Model.list()
-
-        # exclude useless models
-        exclude = [
-            "instruct",
-            "similarity",
-            "if",
-            "query",
-            "document",
-            "insert",
-            "search",
-            "edit",
-            "dall-e",
-            "tts"
-        ]
-
-        print("     loading engines...")
-
-        model_list = []
-
-        model_list = [
-            str(model.id)
-            for model in models.data
-            if not any(y in str(model.id) for y in exclude)
-        ]
-
-        print("     engines loaded successfully")
-
-    # loading API key and models in the background
-    time_start = time.time()
-    load_api_key()
-    load_models()
-    time_end = time.time() - time_start
-    print(f"Loaded in {time_end} seconds")
+load_api_key()
 
 
 class Tab1(QWidget):
@@ -139,10 +42,11 @@ class Tab1(QWidget):
 
         self.sendButton = QPushButton("Send prompt")
         self.engine = QComboBox()
+        model_list = load_models()
         self.engine.addItems(model_list)
 
         # connections
-        self.engine.currentIndexChanged.connect(self.value_change)
+        self.engine.currentIndexChanged.connect(self.selection_change)
 
         self.tokenSlide.setRange(10, 1000)
         self.tokenSlide.valueChanged.connect(self.value_change)
@@ -158,7 +62,7 @@ class Tab1(QWidget):
         self.sendButton.clicked.connect(self.send_prompt_thread)
 
     def init_ui(self):
-        self.cEngine = self.engine.currentText()
+        print("Engine: ", self.engine.currentText)
 
         l = QGridLayout()
         l.aw = lambda w, r, c: l.addWidget(w, r, c)
@@ -178,6 +82,7 @@ class Tab1(QWidget):
 
     def selection_change(self):
         self.cEngine = self.engine.currentText()
+        self.engineStatus.setText("Engine: " + self.cEngine)
 
     def value_change(self):
         self.tokenAmount = self.tokenSlide.value()
@@ -196,6 +101,7 @@ class Tab1(QWidget):
 
     def send_prompt(self):
         print("Sending prompt...")
+        print("Engine: ", self.cEngine)
 
         response = openai.Completion.create(
             engine=self.cEngine,
@@ -268,7 +174,13 @@ class Tab2(QWidget):
         messages.append({"role": "user", "content": f"{prompt}"})
 
         self.thread = QThread()
-        self.worker = Worker(responseBox=self.responseBox)
+        self.worker = Worker(
+            responseBox=self.responseBox,
+            chat_engine=chat_engine,
+            tempAmount=tempAmount,
+            tokenAmount=tokenAmount,
+            messages=messages,
+        )
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
         self.thread.start()
@@ -278,43 +190,6 @@ class Tab2(QWidget):
 
     def update_text_box(self, text_chunk):
         self.responseBox.insertPlainText(text_chunk)
-
-
-class Worker(QObject):
-    finished = pyqtSignal()
-    progress = pyqtSignal(str)
-
-    def __init__(self, responseBox):
-        super().__init__()
-        self.responseBox = responseBox
-
-    def generate_response(self):
-        global messages
-
-        response = openai.ChatCompletion.create(
-            model=chat_engine,
-            temperature=tempAmount,
-            max_tokens=tokenAmount,
-            messages=messages,
-            stream=True,
-        )
-
-        collected_chunks = []
-        collected_messages = []
-
-        for chunk in response:
-            collected_chunks.append(chunk)
-            chunk_message = chunk["choices"][0]["delta"]
-            collected_messages.append(chunk_message)
-            self.progress.emit("".join(chunk_message.get("content", "")))
-
-        full_reply = "".join([m.get("content", "") for m in collected_messages])
-
-        messages.append({"role": "assistant", "content": f"{full_reply}"})
-
-    def run(self):
-        self.generate_response()
-        self.finished.emit()
 
 
 # Chat Settings Tab
@@ -353,6 +228,7 @@ class Tab3(QWidget):
         self.exportButton.clicked.connect(self.export_chat)
         self.engineBox = QComboBox()
 
+        model_list = load_models()
         self.engineBox.addItems(model_list)
 
         self.engineBox.setCurrentText(chat_engine)
@@ -395,13 +271,3 @@ class Tab3(QWidget):
         law(self.exportButton, 5, 0)
 
         self.setLayout(layout)
-
-
-def main():
-    app = QApplication(sys.argv)
-    ex = App()
-    sys.exit(app.exec())
-
-
-if __name__ == "__main__":
-    main()

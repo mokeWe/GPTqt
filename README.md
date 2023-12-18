@@ -19,16 +19,17 @@ Python 3.10 is recommended, older versions will probably work just fine.
 
 ```bash
 git clone https://github.com/mokeWe/GPTqt
-cd GPTqt 
+cd GPTqt
 pip install -r Requirements.txt
 ```
 
-Before you run the program make sure your API key is in `api-key.txt`, it should start with `sk-...` 
+Before you run the program make sure your API key is in `api-key.txt`, it should start with `sk-...`
 Run the program:
+
 ```bash
-python3 pyqt.py
+python3 main.py
 ```
-  
+
 ## Basics
 
 `Tokens` are the amount of characters to generate. 4 characters of tokenized English text is ~= to one token.
@@ -40,6 +41,7 @@ OpenAI provides a very good guide in prompt engineering and basic function for
 their large language models, it is called the [OpenAI Cookbook](https://github.com/openai/openai-cookbook). There are multiple examples within the repository that you can try out yourself.
 
 ## Screenshots
+
 <details>
 <summary>Click to expand.</summary>
 
