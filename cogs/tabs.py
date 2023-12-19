@@ -113,16 +113,13 @@ class Tab1(QWidget):
             n=int(self.answerAmount),
         )
 
-        # Set the text box as response
         self.responseBox.setText("")
 
-        # Prepare answers
         answers = [
             ("[+] ANSWER " + str(i + 1), response.choices[i].text)
             for i in range(int(self.answerAmount))
         ]
 
-        # Update response box and write the response text to a file
         with open("Responses.txt", "a+") as f:
             f.write(
                 f"Prompt: {self.promptEdit.toPlainText()} | Engine: {self.cEngine}\n"
@@ -158,12 +155,10 @@ class Tab2(QWidget):
         l.addWidget(self.promptEdit, 2, 0)
         self.setLayout(l)
 
-        # set ghost text for prompt
         self.promptEdit.setPlaceholderText("Enter your prompt here...")
         self.promptEdit.returnPressed.connect(self.generate_response)
 
     def generate_response(self):
-        # set up threading to stop the UI from freezing
 
         global messages
 
@@ -259,7 +254,6 @@ class Tab3(QWidget):
             print(f"Error: {e}")
 
     def init_ui(self):
-        """Initialize the UI for tab3"""
         layout = QGridLayout()
         layout.setRowStretch(10, 1)
         law = lambda w, r, c: layout.addWidget(w, r, c)
